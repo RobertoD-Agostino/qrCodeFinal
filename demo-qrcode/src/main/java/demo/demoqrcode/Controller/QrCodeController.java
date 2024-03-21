@@ -29,13 +29,12 @@ public class QrCodeController {
     @PostMapping("/generate")
 public ResponseEntity<ResponseImage> downloadQrCodeBase64(@RequestParam String requestUrl) {
     try {
-        byte[] qrCodeBytes = MethodUtils.generateQrCodeImage(requestUrl, DEFAULT_QR_WIDTH, DEFAULT_QR_HEIGHT, Color.BLACK, Color.white);
+        byte[] qrCodeBytes = MethodUtils.generateQrCodeImage(requestUrl, DEFAULT_QR_WIDTH, DEFAULT_QR_HEIGHT, Color.decode("#4b0082"), Color.decode("#ffff66"));
         BufferedImage qrCodeImage = ImageIO.read(new ByteArrayInputStream(qrCodeBytes));
         
         String imagePath = "img/phone2.png";
         BufferedImage logo = ImageIO.read(MethodUtils.class.getClassLoader().getResourceAsStream(imagePath));
 
-        
         // Aggiungi il logo all'immagine con il testo
         BufferedImage finalImage = MethodUtils.addLogoToBorder(qrCodeImage, logo,20,10,80);
         

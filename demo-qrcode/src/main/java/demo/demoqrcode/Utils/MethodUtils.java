@@ -51,7 +51,7 @@ public class MethodUtils {
         Graphics2D qrGraphics = image.createGraphics();
         qrGraphics.drawImage(overlayImage, 0, 0, null);
         qrGraphics.dispose();
-        BufferedImage imageWithBorder = addBorder(image, topBorder, bottomBorder, leftBorder, rightBorder, Color.BLUE);
+        BufferedImage imageWithBorder = addBorder(image, topBorder, bottomBorder, leftBorder, rightBorder, Color.decode("#4b0082"));
         addTextToBorder(imageWithBorder, "SCAN ME", Color.black, 20,bottomBorder);
 
         String imagePath = "img/scanMe.png";
@@ -64,6 +64,7 @@ public class MethodUtils {
         ImageIO.write(imageWithLogo, "PNG", pngOutputStream);
         return pngOutputStream.toByteArray();
     }
+
     public static BufferedImage resizeImage(BufferedImage originalImage, int targetWidth, int targetHeight) {
         Image resultingImage = originalImage.getScaledInstance(targetWidth, targetHeight, Image.SCALE_SMOOTH);
         BufferedImage outputImage = new BufferedImage(targetWidth, targetHeight, BufferedImage.TYPE_INT_ARGB);
@@ -109,25 +110,13 @@ public class MethodUtils {
     
     
     public static BufferedImage addLogoToBorder(BufferedImage baseImage, BufferedImage logo, int fontSize, int logoMargin, int bottomBorderSize) {
-        // Calcola la larghezza del testo
-        Graphics2D g = baseImage.createGraphics();
-        g.setFont(new Font("Arial", Font.BOLD, fontSize));
-        FontMetrics metrics = g.getFontMetrics();
-        int textHeight = metrics.getHeight();
-        g.dispose();
     
         // Calcola le coordinate Y del centro del testo
-        int textCenterY = baseImage.getHeight() - bottomBorderSize / 2 + textHeight / 2;
-    
-        // Calcola le coordinate Y del centro del logo
-        int logoCenterY = (logo.getHeight() / 2) + logoMargin;
-    
-        // Calcola la posizione verticale del logo
-        int logoY = textCenterY - logoCenterY;
-    
+        int textCenterY = baseImage.getHeight() - bottomBorderSize / 2 - logo.getHeight()/2;
+
         // Disegna il logo
         Graphics2D g2 = baseImage.createGraphics();
-        g2.drawImage(logo, 0, logoY, null);
+        g2.drawImage(logo, 0, textCenterY, null);
         g2.dispose();
     
         return baseImage;
@@ -157,7 +146,6 @@ public class MethodUtils {
         // Calcola le coordinate x e y per posizionare il testo al centro del bordo inferiore         
         // int x = (img.getWidth() - textWidth) / 2;         
         int y = img.getHeight()-bottomBorderSize/2+(maxHeight/2);
-
 
     
         // Calcola le coordinate x per posizionare il testo al centro del bordo inferiore
