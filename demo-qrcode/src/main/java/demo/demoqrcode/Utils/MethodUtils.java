@@ -48,7 +48,7 @@ public class MethodUtils {
         addTextToBorder(imageWithBorder, requestData.getTextBorder(), Color.black, 20, requestData.getBottomBorderSize());
     
         BufferedImage centerLogo = loadImageFromUrl(requestData.getLogoCenterUrl());
-        centerLogo = resizeLogoForBorder(centerLogo, whiteBoxSize, whiteBoxSize);
+        centerLogo = resizeImage(centerLogo, whiteBoxSize, whiteBoxSize);
     
         BufferedImage borderLogo = loadImageFromUrl(requestData.getLogoBorderUrl());
         borderLogo = resizeImage(borderLogo, whiteBoxSize, whiteBoxSize);
@@ -61,17 +61,10 @@ public class MethodUtils {
         return pngOutputStream.toByteArray();
     }
     
-
-
-
     private static BufferedImage loadImageFromUrl(String imageUrl) throws IOException {
         URL url = new URL(imageUrl);
         return ImageIO.read(url);
     }
-    
-    // public static String encodeImageToBase64(byte[] imageBytes) {
-    //     return Base64.getEncoder().encodeToString(imageBytes);
-    // }
 
     public static BufferedImage resizeImage(BufferedImage originalImage, int targetWidth, int targetHeight) {
         //L'immagine originale viene ridimensionata alle dimensioni desiderate utilizzando il metodo getScaledInstance, che ritorna un oggetto Image ridimensionato in base alle dimensioni specificate. Il parametro Image.SCALE_SMOOTH indica di utilizzare un algoritmo di ridimensionamento liscio.
@@ -104,13 +97,6 @@ public class MethodUtils {
         return imageWithLogo;
     }
     
-    
-    public static BufferedImage resizeLogoForBorder(BufferedImage logo, int targetWidth, int targetHeight) {
-        // Ridimensiona il logo nel bordo alle dimensioni desiderate
-        return resizeImage(logo, targetWidth, targetHeight);
-    }
-    
-
 
     public static BufferedImage addBorder(BufferedImage img, int topBorderSize, int bottomBorderSize, int leftBorderSize, int rightBorderSize, Color borderColor) {
         //Vengono calcolate le nuove dimensioni dell'immagine, tenendo conto delle dimensioni del bordo che verrà aggiunto.

@@ -12,6 +12,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @Builder
 public class RequestData {
+    
     private String requestUrl;
     private int qrWidth;
     private int qrHeight;
