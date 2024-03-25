@@ -18,20 +18,15 @@ public class RequestData {
     private String qrCodeColor;
     private String backgroundColor;
     private String borderColor;
+    private String textBorder;
     private int topBorderSize;
     private int bottomBorderSize;
     private int leftBorderSize;
     private int rightBorderSize;
-    // private String logoCenterUrl;
-    // private String logoBorderUrl;
+    private String logoCenterUrl;
+    private String logoBorderUrl;
 
-
-    // "logoCenterUrl" : "https://cdn-icons-png.flaticon.com/512/13915/13915094.png",
-    // "logoBorderUrl" : "https://cdn-icons-png.flaticon.com/512/0/191.png"
-
-                       // requestData.getLogoCenterUrl(),
-                    // requestData.getLogoBorderUrl()
-
+    
     public Color getQrCodeColorAsColor() {
         return Color.decode(qrCodeColor);
     }

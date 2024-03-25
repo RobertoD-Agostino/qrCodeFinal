@@ -28,113 +28,41 @@ import javax.imageio.ImageIO;
 @RestController
 public class QrCodeController {
 
+    @PostMapping("/generate")
+    public ResponseEntity<ResponseImage> downloadQrCodeBase64(@RequestBody RequestData requestData) {
+        try {
+    //         byte[] qrCodeBytes = MethodUtils.generateQrCodeImage(
+    //     requestData.getRequestUrl(), 
+    //     requestData.getQrWidth(), 
+    //     requestData.getQrHeight(), 
+    //     requestData.getQrCodeColorAsColor(), 
+    //     requestData.getBackgroundColorAsColor(),
+    //     requestData.getBorderColorAsColor(),
+    //     requestData.getTextBorder(),
+    //     requestData.getTopBorderSize(),
+    //     requestData.getBottomBorderSize(),
+    //     requestData.getLeftBorderSize(),
+    //     requestData.getRightBorderSize(),
+    //     requestData.getLogoCenterUrl(),
+    //     requestData.getLogoBorderUrl()
+    // );
 
-//     public static final int DEFAULT_QR_WIDTH = 350;
-//     public static final int DEFAULT_QR_HEIGHT = 350;
+            byte[] qrCodeBytes = MethodUtils.generateQrCodeImage(requestData);        
 
-//     @PostMapping("/generate")
-// public ResponseEntity<ResponseImage> downloadQrCodeBase64(@RequestParam String requestUrl) {
-//     try {
-//         byte[] qrCodeBytes = MethodUtils.generateQrCodeImage(requestUrl, DEFAULT_QR_WIDTH, DEFAULT_QR_HEIGHT, Color.decode("#4b0082"), Color.decode("#ffff66"));
-//         BufferedImage qrCodeImage = ImageIO.read(new ByteArrayInputStream(qrCodeBytes));
-        
-//         String imagePath = "img/phone2.png";
-//         BufferedImage logo = ImageIO.read(MethodUtils.class.getClassLoader().getResourceAsStream(imagePath));
+            BufferedImage qrCodeImage = ImageIO.read(new ByteArrayInputStream(qrCodeBytes));
+            ByteArrayOutputStream pngOutputStream = new ByteArrayOutputStream();
+            ImageIO.write(qrCodeImage, "PNG", pngOutputStream);
+            String base64 = Base64.getEncoder().encodeToString(pngOutputStream.toByteArray());
+            base64 = "data:image/png;base64," + base64;
 
-//         // Aggiungi il logo all'immagine con il testo
-//         BufferedImage finalImage = MethodUtils.addLogoToBorder(qrCodeImage, logo,20,10,80);
-        
-//         ByteArrayOutputStream pngOutputStream = new ByteArrayOutputStream();
-//         ImageIO.write(finalImage, "PNG", pngOutputStream);
-//         String base64 = Base64.getEncoder().encodeToString(pngOutputStream.toByteArray());
-//         base64 = "data:image/png;base64," + base64;
-        
-//         ResponseImage response = new ResponseImage();
-//         response.setImageBase64(base64);
-        
-//         return ResponseEntity.status(HttpStatus.OK).body(response);
-//     } catch (Exception e) {
-//         return ResponseEntity.status(HttpStatus.NO_CONTENT).body(null);
-//     }
-// }
+            ResponseImage response = new ResponseImage();
+            response.setImageBase64(base64);
 
-
-@PostMapping("/generate")
-public ResponseEntity<ResponseImage> downloadQrCodeBase64(@RequestBody RequestData requestData) {
-    try {
-        byte[] qrCodeBytes = MethodUtils.generateQrCodeImage(
-    requestData.getRequestUrl(), 
-    requestData.getQrWidth(), 
-    requestData.getQrHeight(), 
-    requestData.getQrWidth(), // Usa le stesse dimensioni per l'immagine complessiva
-    requestData.getQrHeight(), // Usa le stesse dimensioni per l'immagine complessiva
-    requestData.getQrCodeColorAsColor(), 
-    requestData.getBackgroundColorAsColor(),
-    requestData.getBorderColorAsColor(),
-    requestData.getTopBorderSize(),
-    requestData.getBottomBorderSize(),
-    requestData.getLeftBorderSize(),
-    requestData.getRightBorderSize()
-);
-
-        BufferedImage qrCodeImage = ImageIO.read(new ByteArrayInputStream(qrCodeBytes));
-
-        String imagePath = "img/phone2.png";
-        BufferedImage logo = ImageIO.read(MethodUtils.class.getClassLoader().getResourceAsStream(imagePath));
-
-        // Aggiungi il logo all'immagine con il testo
-        BufferedImage finalImage = MethodUtils.addLogoToBorder(qrCodeImage, logo, 20, 10, 80);
-
-        ByteArrayOutputStream pngOutputStream = new ByteArrayOutputStream();
-        ImageIO.write(finalImage, "PNG", pngOutputStream);
-        String base64 = Base64.getEncoder().encodeToString(pngOutputStream.toByteArray());
-        base64 = "data:image/png;base64," + base64;
-
-        ResponseImage response = new ResponseImage();
-        response.setImageBase64(base64);
-
-        return ResponseEntity.status(HttpStatus.OK).body(response);
-    } catch (Exception e) {
-        return ResponseEntity.status(HttpStatus.NO_CONTENT).body(null);
+            return ResponseEntity.status(HttpStatus.OK).body(response);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.NO_CONTENT).body(null);
+        }
     }
-}
 
-}
+    }
 
-
-
-// @PostMapping("/generate")
-//     public ResponseEntity<ResponseImage> generateQrCodeImage(@RequestBody RequestData requestData) throws NumberFormatException, WriterException {
-//         try {
-//             byte[] qrCodeBytes = MethodUtils.generateQrCodeImage(
-//                     requestData.getRequestUrl(),
-//                     requestData.getQrWidth(),
-//                     requestData.getQrHeight(),
-//                     Color.decode(requestData.getQrCodeColor()),
-//                     Color.decode(requestData.getBackgroundColor()),
-//                     Color.decode(requestData.getBorderColor()),
-//                     requestData.getTopBorderSize(),
-//                     requestData.getBottomBorderSize(),
-//                     requestData.getLeftBorderSize(),
-//                     requestData.getRightBorderSize()
-//             );
-
-//             // String base64 = MethodUtils.encodeImageToBase64(qrCodeBytes);
-
-//             // ResponseImage response = new ResponseImage();
-//             // response.setImageBase64(base64);
-
-
-//             ByteArrayOutputStream pngOutputStream = new ByteArrayOutputStream();
-
-//             String base64 = Base64.getEncoder().encodeToString(pngOutputStream.toByteArray());
-//             base64 = "data:image/png;base64," + base64;
-            
-//             ResponseImage response = new ResponseImage();
-//             response.setImageBase64(base64);
-
-//             return ResponseEntity.status(HttpStatus.OK).body(response);
-//         } catch (IOException e) {
-//             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
-//         }
-//     }
