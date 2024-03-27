@@ -7,11 +7,21 @@ import java.awt.FontMetrics;
 import java.awt.Graphics2D;
 import java.awt.Image;
 import java.awt.image.BufferedImage;
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.lang.reflect.Array;
+import java.lang.reflect.Field;
 import java.net.URL;
+import java.util.ArrayList;
+import java.util.Base64;
+import java.util.List;
 
 import javax.imageio.ImageIO;
+
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.util.StringUtils;
 
 import com.google.zxing.BarcodeFormat;
 import com.google.zxing.WriterException;
@@ -20,13 +30,17 @@ import com.google.zxing.client.j2se.MatrixToImageWriter;
 import com.google.zxing.common.BitMatrix;
 import com.google.zxing.qrcode.QRCodeWriter;
 
+import demo.demoqrcode.Model.ResponseImage;
+
 
 public class MethodUtils {
 
     public static byte[] generateQrCodeImage(RequestData requestData) throws WriterException, IOException {
         QRCodeWriter qrCodeWriter = new QRCodeWriter();
+        
         BitMatrix bitMatrix = qrCodeWriter.encode(requestData.getRequestUrl(), BarcodeFormat.QR_CODE, requestData.getQrWidth(), requestData.getQrHeight());
         MatrixToImageConfig con = new MatrixToImageConfig(requestData.getQrCodeColorAsColor().getRGB(), requestData.getBackgroundColorAsColor().getRGB());
+
         BufferedImage image = MatrixToImageWriter.toBufferedImage(bitMatrix, con);
         int whiteBoxSize = (int) (Math.min(requestData.getQrWidth(), requestData.getQrHeight()) * 0.135);
         int whiteBoxX = (requestData.getQrWidth() - whiteBoxSize) / 2;
@@ -60,11 +74,102 @@ public class MethodUtils {
         ImageIO.write(imageWithBothLogo, "PNG", pngOutputStream);
         return pngOutputStream.toByteArray();
     }
+
+    public static byte[] generateQrCodeBase(String text) throws WriterException, IOException {
+        QRCodeWriter qrCodeWriter = new QRCodeWriter();
+        BitMatrix bitMatrix = qrCodeWriter.encode(text, BarcodeFormat.QR_CODE, 350,350);
+
+        ByteArrayOutputStream pngOutputStream = new ByteArrayOutputStream();
+        MatrixToImageConfig con = new MatrixToImageConfig(0xFFFFFFFF, 0xFF000000);
+
+        MatrixToImageWriter.writeToStream(bitMatrix, "PNG", pngOutputStream);
+        return pngOutputStream.toByteArray();
+    }
+
+   
+
+    public static SeparateFields separateFields(RequestData requestData) {
+        ArrayList<String> stringFields = new ArrayList<>();
+        ArrayList<Integer> intFields = new ArrayList<>();
+
+        Field[] fields = requestData.getClass().getDeclaredFields();
+
+        for (Field field : fields) {
+            field.setAccessible(true);
+            String fieldName = field.getName();
+            
+            if (!fieldName.equals("requestUrl")){
+                try {
+                    Object value = field.get(requestData);
+                    if (value instanceof String) {
+                        stringFields.add((String) value);
+                    } else if (value instanceof Integer) {
+                        intFields.add((Integer) value);
+                    }
+                } catch (IllegalAccessException e) {
+                    e.printStackTrace();
+                } 
+            }
+        }
+        return new SeparateFields(stringFields, intFields);
+    }
+
+    public static boolean areAllZero(ArrayList<Integer> l){
+        for (int i = 0; i < l.size(); i++) {
+            if (l.get(i)!=0) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    public static boolean areAllStringsEmpty(ArrayList<String> l){
+        for (String string : l) {
+            String cleanedString = string.replaceAll(" ", "").replaceAll(",", "");
+            if (!cleanedString.isEmpty()) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    public static boolean containsOnlyEmptyStrings(ArrayList<String> l) {
+        for (String string : l) {
+            if (!string.trim().isEmpty()) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    public static ResponseImage result(byte[] qrBytes) throws IOException{
+        
+            BufferedImage qrCodeImage = ImageIO.read(new ByteArrayInputStream(qrBytes));
+            ByteArrayOutputStream pngOutputStream = new ByteArrayOutputStream();
+            ImageIO.write(qrCodeImage, "PNG", pngOutputStream);
+            String base64 = Base64.getEncoder().encodeToString(pngOutputStream.toByteArray());
+            base64 = "data:image/png;base64," + base64;
+
+            ResponseImage response = new ResponseImage();
+            response.setImageBase64(base64);
+            return response;
+    }
+
+
+    public static byte[] qrCodeResult(RequestData requestData) throws WriterException, IOException{
+        if (areAllZero(separateFields(requestData).getIntFields()) && containsOnlyEmptyStrings(separateFields(requestData).getStringFields())){
+            return generateQrCodeBase(requestData.getRequestUrl());
+        }else{
+            return generateQrCodeImage(requestData);
+        }
+    }
+
     
     private static BufferedImage loadImageFromUrl(String imageUrl) throws IOException {
         URL url = new URL(imageUrl);
         return ImageIO.read(url);
     }
+
 
     public static BufferedImage resizeImage(BufferedImage originalImage, int targetWidth, int targetHeight) {
         //L'immagine originale viene ridimensionata alle dimensioni desiderate utilizzando il metodo getScaledInstance, che ritorna un oggetto Image ridimensionato in base alle dimensioni specificate. Il parametro Image.SCALE_SMOOTH indica di utilizzare un algoritmo di ridimensionamento liscio.
@@ -166,3 +271,4 @@ public class MethodUtils {
     }
 
 }
+

@@ -1,6 +1,8 @@
 package demo.demoqrcode.Utils;
 
 import java.awt.Color;
+import java.util.Objects;
+import java.util.stream.Stream;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -40,4 +42,26 @@ public class RequestData {
         return Color.decode(borderColor);
     }
 
+
+       // Verifica se ci sono altri parametri oltre all'URL
+       public boolean hasAdditionalParameters() {
+        return qrWidth != 0 ||
+               qrHeight != 0 ||
+               qrCodeColor != null ||
+               backgroundColor != null ||
+               borderColor != null ||
+               textBorder != null ||
+               topBorderSize != 0 ||
+               bottomBorderSize != 0 ||
+               leftBorderSize != 0 ||
+               rightBorderSize != 0 ||
+               logoCenterUrl != null ||
+               logoBorderUrl != null;
+    }
+
+        public boolean hasOnlyUrl() {
+        return Stream.of(qrWidth, qrHeight, qrCodeColor, backgroundColor, borderColor, textBorder,
+                topBorderSize, bottomBorderSize, leftBorderSize, rightBorderSize, logoCenterUrl, logoBorderUrl)
+                .allMatch(Objects::isNull);
+    }
 }
