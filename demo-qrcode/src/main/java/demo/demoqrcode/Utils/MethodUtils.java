@@ -30,22 +30,50 @@ import com.google.zxing.client.j2se.MatrixToImageWriter;
 import com.google.zxing.common.BitMatrix;
 import com.google.zxing.qrcode.QRCodeWriter;
 
+import Exceptions.BorderNotPresent;
+import Exceptions.TopOrBottomBorderNotSpecifiedException;
+import Exceptions.UrlNotPresentException;
+import Exceptions.WidthAndHeightNotEnoughException;
+import Exceptions.BorderColorNotPresent;
 import demo.demoqrcode.Model.ResponseImage;
 
 
 public class MethodUtils {
 
-    public static byte[] generateQrCodeImage(RequestData requestData) throws WriterException, IOException {
+    //METODO PER GENERARE IL QRCODE CON TUTTE LE PERSONALIZZAZIONI
+    public static byte[] generateQrCodeImage(RequestData requestData) throws WriterException, IOException, RuntimeException{
         QRCodeWriter qrCodeWriter = new QRCodeWriter();
         
+        if (requestData.getQrWidth()<200 || requestData.getQrHeight() <200){
+            throw new WidthAndHeightNotEnoughException("Se vuoi personalizzare le dimensioni devono essere minimo 200");
+        }
+
+        if (requestData.getRequestUrl().isEmpty()) {
+            throw new UrlNotPresentException("Specificare un URL");
+        }
+
+        // Encode QR code with specified width, height, and URL
         BitMatrix bitMatrix = qrCodeWriter.encode(requestData.getRequestUrl(), BarcodeFormat.QR_CODE, requestData.getQrWidth(), requestData.getQrHeight());
+        
+        // // Set default colors if not provided
+        if (requestData.getBackgroundColor().isEmpty()) {
+            requestData.setBackgroundColor("#ffffff");
+        }else if (requestData.getQrCodeColor().isEmpty()){
+            requestData.setQrCodeColor("#000000");
+        }
+
+
+        
         MatrixToImageConfig con = new MatrixToImageConfig(requestData.getQrCodeColorAsColor().getRGB(), requestData.getBackgroundColorAsColor().getRGB());
 
+
+        // Convert bitMatrix to BufferedImage
         BufferedImage image = MatrixToImageWriter.toBufferedImage(bitMatrix, con);
+        
+        // Add white box to the center
         int whiteBoxSize = (int) (Math.min(requestData.getQrWidth(), requestData.getQrHeight()) * 0.135);
         int whiteBoxX = (requestData.getQrWidth() - whiteBoxSize) / 2;
         int whiteBoxY = (requestData.getQrHeight() - whiteBoxSize) / 2;
-    
         BufferedImage overlayImage = new BufferedImage(requestData.getQrWidth(), requestData.getQrHeight(), BufferedImage.TYPE_INT_ARGB);
         Graphics2D graphics = overlayImage.createGraphics();
         graphics.setColor(new Color(255, 255, 255, 0));
@@ -54,40 +82,108 @@ public class MethodUtils {
         graphics.fillRect(whiteBoxX, whiteBoxY, whiteBoxSize, whiteBoxSize);
         graphics.dispose();
     
+        // Merge QR code image with the white box
         Graphics2D qrGraphics = image.createGraphics();
         qrGraphics.drawImage(overlayImage, 0, 0, null);
         qrGraphics.dispose();
     
-        BufferedImage imageWithBorder = addBorder(image, requestData.getTopBorderSize(), requestData.getBottomBorderSize(), requestData.getLeftBorderSize(), requestData.getRightBorderSize(), requestData.getBorderColorAsColor());
-        addTextToBorder(imageWithBorder, requestData.getTextBorder(), Color.black, 20, requestData.getBottomBorderSize());
+        // Add borders if provided
+        if (requestData.getTopBorderSize() != 0 || requestData.getBottomBorderSize() != 0 ||
+            requestData.getLeftBorderSize() != 0 || requestData.getRightBorderSize() != 0) {
+
+            if (requestData.getBorderColor().isEmpty()) {
+                // Throw exception if border color is provided without border sizes
+                throw new BorderColorNotPresent("Inserire un colore per i bordi");
+            }
+
+            BufferedImage imageWithBorder = addBorder(image, requestData.getTopBorderSize(), requestData.getBottomBorderSize(),requestData.getLeftBorderSize(),requestData.getRightBorderSize(), requestData.getBorderColorAsColor());
+            
+            image = imageWithBorder;
+        } else if (!requestData.getBorderColor().isEmpty()) {
+            // Throw exception if border color is provided without border sizes
+            throw new BorderNotPresent("Inserire almeno un bordo per inserire il colore");
+        }
     
-        BufferedImage centerLogo = loadImageFromUrl(requestData.getLogoCenterUrl());
-        centerLogo = resizeImage(centerLogo, whiteBoxSize, whiteBoxSize);
+        
+        // Add center logo if provided
+        if (!requestData.getLogoCenterUrl().isEmpty()) {
+            BufferedImage centerLogo = loadImageFromUrl(requestData.getLogoCenterUrl());
+            centerLogo = resizeImage(centerLogo, whiteBoxSize, whiteBoxSize);
+            image = addLogoToCenter(image, centerLogo, requestData.getTopBorderSize(), requestData.getBottomBorderSize(),
+                    requestData.getLeftBorderSize(), requestData.getRightBorderSize());
+        }
     
-        BufferedImage borderLogo = loadImageFromUrl(requestData.getLogoBorderUrl());
-        borderLogo = resizeImage(borderLogo, whiteBoxSize, whiteBoxSize);
-    
-        BufferedImage imageWithLogo = addLogoToCenter(imageWithBorder, centerLogo, requestData.getTopBorderSize(), requestData.getBottomBorderSize(), requestData.getLeftBorderSize(), requestData.getRightBorderSize());
-        BufferedImage imageWithBothLogo = addLogoToBorder(imageWithLogo, borderLogo, 20, 10, requestData.getBottomBorderSize());
-    
+        if (requestData.getTopOrBottom()!=null) {
+            // Add border logo if provided
+            if (!requestData.getLogoBorderUrl().isEmpty()) {
+                BufferedImage borderLogo = loadImageFromUrl(requestData.getLogoBorderUrl());
+                borderLogo = resizeImage(borderLogo, whiteBoxSize, whiteBoxSize);
+
+                if (requestData.getTopOrBottom().toLowerCase().equals("top")) {
+                    image = addLogoToBorder(image, borderLogo, 20, 10, requestData.getTopBorderSize(),requestData.getTopOrBottom()); 
+                    if (requestData.getTopBorderSize()<60) {
+                        throw new TopOrBottomBorderNotSpecifiedException("Il bordo su cui inserire il logo o il testo deve essere minimo 60");
+                    }
+                }
+                else if (requestData.getTopOrBottom().toLowerCase().equals("bottom")) {
+                    if (requestData.getBottomBorderSize()<60) {
+                    throw new TopOrBottomBorderNotSpecifiedException("Il bordo su cui inserire il logo o il testo deve essere minimo 60");
+                    }
+                    image = addLogoToBorder(image, borderLogo, 20, 10, requestData.getBottomBorderSize(),requestData.getTopOrBottom()); 
+                }
+                else{
+                    throw new TopOrBottomBorderNotSpecifiedException("Specificare il bordo sul quale inserire testo e logo");
+                }
+            }
+
+            // Add text to border if provided
+            if (!requestData.getTextBorder().isEmpty()) {
+                if (requestData.getTopOrBottom().toLowerCase().equals("top")){
+                    if (requestData.getTopBorderSize()<60) {
+                        throw new TopOrBottomBorderNotSpecifiedException("Il bordo su cui inserire il logo o il testo deve essere minimo 60");
+                    }
+                    addTextToBorder(image, requestData.getTextBorder(), Color.BLACK, 20, requestData.getTopBorderSize(),requestData.getTopOrBottom());
+                }
+                else if(requestData.getTopOrBottom().toLowerCase().equals("bottom")){
+                    if (requestData.getBottomBorderSize()<60) {
+                        throw new TopOrBottomBorderNotSpecifiedException("Il bordo su cui inserire il logo o il testo deve essere minimo 60");
+                    }
+                    addTextToBorder(image, requestData.getTextBorder(), Color.BLACK, 20, requestData.getBottomBorderSize(),requestData.getTopOrBottom());
+                }
+                else{
+                    throw new TopOrBottomBorderNotSpecifiedException("Specificare il bordo sul quale inserire testo e logo");
+                }
+            } 
+        }
+        
+
+        
+
+        // Convert BufferedImage to byte array
         ByteArrayOutputStream pngOutputStream = new ByteArrayOutputStream();
-        ImageIO.write(imageWithBothLogo, "PNG", pngOutputStream);
+        ImageIO.write(image, "PNG", pngOutputStream);
         return pngOutputStream.toByteArray();
     }
+    
+    // public static void requestText(RequestData requestData){
 
-    public static byte[] generateQrCodeBase(String text) throws WriterException, IOException {
+    // }
+
+
+
+    //METODO PER GENERARE IL QRCODE BASE SENZA PERSONALIZZAZIONI
+    public static byte[] generateQrCodeBase(String text, int width, int height) throws WriterException, IOException {
         QRCodeWriter qrCodeWriter = new QRCodeWriter();
-        BitMatrix bitMatrix = qrCodeWriter.encode(text, BarcodeFormat.QR_CODE, 350,350);
+        BitMatrix bitMatrix = qrCodeWriter.encode(text, BarcodeFormat.QR_CODE, width,height);
 
         ByteArrayOutputStream pngOutputStream = new ByteArrayOutputStream();
-        MatrixToImageConfig con = new MatrixToImageConfig(0xFFFFFFFF, 0xFF000000);
 
         MatrixToImageWriter.writeToStream(bitMatrix, "PNG", pngOutputStream);
         return pngOutputStream.toByteArray();
     }
 
    
-
+    //METODO PER CREARE LE LISTE CON I PARAMETRI DELLA CLASSE REQUESTDATA
     public static SeparateFields separateFields(RequestData requestData) {
         ArrayList<String> stringFields = new ArrayList<>();
         ArrayList<Integer> intFields = new ArrayList<>();
@@ -114,6 +210,7 @@ public class MethodUtils {
         return new SeparateFields(stringFields, intFields);
     }
 
+    //METODO PER VERIFICARE SE NELLA LISTA DEI PARAMETRI INT SONO TUTTI ZERI
     public static boolean areAllZero(ArrayList<Integer> l){
         for (int i = 0; i < l.size(); i++) {
             if (l.get(i)!=0) {
@@ -123,16 +220,7 @@ public class MethodUtils {
         return true;
     }
 
-    public static boolean areAllStringsEmpty(ArrayList<String> l){
-        for (String string : l) {
-            String cleanedString = string.replaceAll(" ", "").replaceAll(",", "");
-            if (!cleanedString.isEmpty()) {
-                return false;
-            }
-        }
-        return true;
-    }
-
+    //METODO PER VERIFICARE SE LA LISTA DI PARAMETRI STRING E' VUOTA 
     public static boolean containsOnlyEmptyStrings(ArrayList<String> l) {
         for (String string : l) {
             if (!string.trim().isEmpty()) {
@@ -142,6 +230,7 @@ public class MethodUtils {
         return true;
     }
 
+    //METODO PER RESTITUIRE IL RISULTATO AL CONTROLLER
     public static ResponseImage result(byte[] qrBytes) throws IOException{
         
             BufferedImage qrCodeImage = ImageIO.read(new ByteArrayInputStream(qrBytes));
@@ -155,22 +244,55 @@ public class MethodUtils {
             return response;
     }
 
+    //METODO PER SCEGLIERE CHE TIPO DI QRCODE GENERARE
+    public static byte[] qrCodeResult(RequestData requestData) throws WriterException, IOException, RuntimeException{
 
-    public static byte[] qrCodeResult(RequestData requestData) throws WriterException, IOException{
-        if (areAllZero(separateFields(requestData).getIntFields()) && containsOnlyEmptyStrings(separateFields(requestData).getStringFields())){
-            return generateQrCodeBase(requestData.getRequestUrl());
-        }else{
+        boolean areZero = areAllZero(separateFields(requestData).getIntFields());
+        boolean emptyString = containsOnlyEmptyStrings(separateFields(requestData).getStringFields());
+        int width = requestData.getQrWidth();
+        int height = requestData.getQrHeight();
+
+
+        if ((areZero && emptyString)){
+            width = 350;
+            height = 350;
+            System.out.println("COndizione base");
+
+            return generateQrCodeBase(requestData.getRequestUrl(), width, height);
+
+        }else if(emptyString && width!=0 || emptyString && height!=0){
+            if (width<200 || height <200){
+                throw new WidthAndHeightNotEnoughException("Se vuoi personalizzare le dimensioni devono essere minimo 200");
+            }
+            System.out.println("COndizione base con controllo");
+
+            return generateQrCodeBase(requestData.getRequestUrl(), width, height);
+        }
+
+        else{
+            
             return generateQrCodeImage(requestData);
         }
     }
 
+    public static ResponseEntity handleRuntimeException(RuntimeException e) {
+        if (e instanceof WidthAndHeightNotEnoughException || e instanceof BorderNotPresent || e instanceof BorderColorNotPresent || e instanceof UrlNotPresentException || e instanceof TopOrBottomBorderNotSpecifiedException) {
+            String errorMessage = e.getClass().getSimpleName() + ": " + e.getMessage();
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorMessage);
+        } else {
+            return ResponseEntity.status(HttpStatus.NO_CONTENT).body(null);
+        }
+    }
     
+    //METODO PER CARICARE UN IMMAGINE DA UN URL
     private static BufferedImage loadImageFromUrl(String imageUrl) throws IOException {
         URL url = new URL(imageUrl);
         return ImageIO.read(url);
     }
 
+    
 
+    //METODO PER RIDIMENSIONARE IL LOGO ALLE DIMENSIONI DEL QUADRATO BIANCO
     public static BufferedImage resizeImage(BufferedImage originalImage, int targetWidth, int targetHeight) {
         //L'immagine originale viene ridimensionata alle dimensioni desiderate utilizzando il metodo getScaledInstance, che ritorna un oggetto Image ridimensionato in base alle dimensioni specificate. Il parametro Image.SCALE_SMOOTH indica di utilizzare un algoritmo di ridimensionamento liscio.
         Image resultingImage = originalImage.getScaledInstance(targetWidth, targetHeight, Image.SCALE_SMOOTH);
@@ -183,6 +305,7 @@ public class MethodUtils {
         return outputImage;
     }
 
+    //METODO PER AGGIUNGERE IL LOGO AL CENTRO
     public static BufferedImage addLogoToCenter(BufferedImage baseImage, BufferedImage logo, int topBorderSize, int bottomBorderSize, int leftBorderSize, int rightBorderSize) {
         // Calcola le dimensioni effettive dell'immagine senza i bordi
         int effectiveWidth = baseImage.getWidth() - leftBorderSize - rightBorderSize;
@@ -202,7 +325,7 @@ public class MethodUtils {
         return imageWithLogo;
     }
     
-
+    //METODO PER AGGIUNGERE IL BORDO
     public static BufferedImage addBorder(BufferedImage img, int topBorderSize, int bottomBorderSize, int leftBorderSize, int rightBorderSize, Color borderColor) {
         //Vengono calcolate le nuove dimensioni dell'immagine, tenendo conto delle dimensioni del bordo che verrà aggiunto.
         int newWidth = img.getWidth() + leftBorderSize + rightBorderSize;
@@ -218,11 +341,19 @@ public class MethodUtils {
         return imgWithBorder;
     }
     
-    
-    public static BufferedImage addLogoToBorder(BufferedImage baseImage, BufferedImage logo, int fontSize, int logoMargin, int bottomBorderSize) {
+    //METODO PER AGGIUNGERE IL LOGO AL BORDO
+    public static BufferedImage addLogoToBorder(BufferedImage baseImage, BufferedImage logo, int fontSize, int logoMargin, int borderSize, String topOrBottom) {
     
         // Calcola le coordinate Y del centro del testo
-        int textCenterY = baseImage.getHeight() - bottomBorderSize / 2 - logo.getHeight()/2;
+        // int textCenterY = baseImage.getHeight() - borderSize / 2 - logo.getHeight()/2;
+
+    // Calcola le coordinate Y del centro del testo
+    int textCenterY;
+    if (topOrBottom.equalsIgnoreCase("top")) {
+        textCenterY = borderSize / 2 - logo.getHeight() / 2;
+    } else {
+        textCenterY = baseImage.getHeight() - borderSize / 2 - logo.getHeight() / 2;
+    }
 
         // Disegna il logo
         Graphics2D g2 = baseImage.createGraphics();
@@ -232,7 +363,12 @@ public class MethodUtils {
         return baseImage;
     }
     
-    public static BufferedImage addTextToBorder(BufferedImage img, String text, Color textColor, int fontSize, int bottomBorderSize) {
+    //METODO PER AGGIUNGERE IL TESTO AL BORDO
+    public static BufferedImage addTextToBorder(BufferedImage img, String text, Color textColor, int fontSize, int borderSize, String topOrBottom) {
+        if (text.isEmpty()) {
+            // Se il testo nel bordo non è presente, non fare nulla
+            return img;
+        }
         Graphics2D g = img.createGraphics();
         g.setColor(textColor);
         Font font = new Font("Arial", Font.BOLD, fontSize);
@@ -252,19 +388,22 @@ public class MethodUtils {
         int charHeight = fontMetrics.getAscent() - fontMetrics.getDescent();                
         maxHeight = Math.max(maxHeight, charHeight);             
         }         
- 
         // Calcola le coordinate x e y per posizionare il testo al centro del bordo inferiore         
-        // int x = (img.getWidth() - textWidth) / 2;         
-        int y = img.getHeight()-bottomBorderSize/2+(maxHeight/2);
+        // int y = img.getHeight()-borderSize/2+(maxHeight/2);
 
-    
         // Calcola le coordinate x per posizionare il testo al centro del bordo inferiore
         int textX = (img.getWidth() - textWidth) / 2;
         // Calcola le coordinate y per posizionare il testo esattamente nella metà del bordo inferiore
         // int textY = img.getHeight() - bottomBorderSize / 2 + textHeight / 2; // Posiziona il testo esattamente nella metà del bordo inferiore
-    
+        int textY;
+        if (topOrBottom.equalsIgnoreCase("top")) {
+            textY = borderSize / 2 + (maxHeight/2);
+        } else {
+            textY = img.getHeight() - borderSize / 2 + (maxHeight/2);
+        }
         // Disegna il testo
-        g.drawString(text, textX, y);
+ 
+        g.drawString(text, textX, textY);
         g.dispose();
     
         return img;

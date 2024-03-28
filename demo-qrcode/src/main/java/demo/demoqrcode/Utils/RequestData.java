@@ -26,6 +26,7 @@ public class RequestData {
     private int bottomBorderSize;
     private int leftBorderSize;
     private int rightBorderSize;
+    private String topOrBottom;
     private String logoCenterUrl;
     private String logoBorderUrl;
 
@@ -42,26 +43,4 @@ public class RequestData {
         return Color.decode(borderColor);
     }
 
-
-       // Verifica se ci sono altri parametri oltre all'URL
-       public boolean hasAdditionalParameters() {
-        return qrWidth != 0 ||
-               qrHeight != 0 ||
-               qrCodeColor != null ||
-               backgroundColor != null ||
-               borderColor != null ||
-               textBorder != null ||
-               topBorderSize != 0 ||
-               bottomBorderSize != 0 ||
-               leftBorderSize != 0 ||
-               rightBorderSize != 0 ||
-               logoCenterUrl != null ||
-               logoBorderUrl != null;
-    }
-
-        public boolean hasOnlyUrl() {
-        return Stream.of(qrWidth, qrHeight, qrCodeColor, backgroundColor, borderColor, textBorder,
-                topBorderSize, bottomBorderSize, leftBorderSize, rightBorderSize, logoCenterUrl, logoBorderUrl)
-                .allMatch(Objects::isNull);
-    }
 }
