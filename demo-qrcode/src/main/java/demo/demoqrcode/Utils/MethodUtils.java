@@ -32,6 +32,7 @@ import com.google.zxing.common.BitMatrix;
 import com.google.zxing.qrcode.QRCodeWriter;
 
 import Exceptions.BorderNotPresent;
+import Exceptions.ColorNotValidException;
 import Exceptions.TopOrBottomBorderNotSpecifiedException;
 import Exceptions.UrlNotPresentException;
 import Exceptions.WidthAndHeightNotEnoughException;
@@ -72,7 +73,9 @@ public class MethodUtils {
         
         int whiteBoxSize = (int) (Math.min(requestData.getQrWidth(), requestData.getQrHeight()) * 0.135);
         
-        image = addWhiteBox(requestData, image, whiteBoxSize);
+        if (!requestData.getLogoCenterUrl().isEmpty()) {
+            image = addWhiteBox(requestData, image, whiteBoxSize); 
+        }
 
         image = addBordersIfProvided(requestData, image);
         
@@ -300,7 +303,7 @@ public class MethodUtils {
     }
 
     public static ResponseEntity handleRuntimeException(RuntimeException e) {
-        if (e instanceof WidthAndHeightNotEnoughException || e instanceof BorderNotPresent || e instanceof BorderColorNotPresent || e instanceof UrlNotPresentException || e instanceof TopOrBottomBorderNotSpecifiedException) {
+        if (e instanceof WidthAndHeightNotEnoughException || e instanceof BorderNotPresent || e instanceof BorderColorNotPresent || e instanceof UrlNotPresentException || e instanceof TopOrBottomBorderNotSpecifiedException || e instanceof ColorNotValidException) {
             String errorMessage = e.getClass().getSimpleName() + ": " + e.getMessage();
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorMessage);
         } else {
