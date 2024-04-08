@@ -31,7 +31,6 @@ public class RequestData {
     private String logoCenterUrl;
     private String logoBorderUrl;
 
-    
     // public Color getQrCodeColorAsColor() {
     //     return Color.decode(qrCodeColor);
     // }
@@ -43,6 +42,8 @@ public class RequestData {
     // public Color getBorderColorAsColor() {
     //     return Color.decode(borderColor);
     // }
+
+    
     public Color getBorderColorAsColor() {
         // Verifica se il codice del colore è nel formato corretto
         if (!borderColor.matches("^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$")) {
@@ -54,7 +55,7 @@ public class RequestData {
 
     public Color getBackgroundColorAsColor() {
         // Verifica se il codice del colore è nel formato corretto
-        if (!borderColor.matches("^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$")) {
+        if (!backgroundColor.matches("^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$")) {
             throw new ColorNotValidException("Il codice del colore non è valido");
         }
         // Restituisce il colore decodificato
@@ -63,7 +64,7 @@ public class RequestData {
 
     public Color getQrCodeColorAsColor() {
         // Verifica se il codice del colore è nel formato corretto
-        if (!borderColor.matches("^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$")) {
+        if (!qrCodeColor.matches("^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$")) {
             throw new ColorNotValidException("Il codice del colore non è valido");
         }
         // Restituisce il colore decodificato

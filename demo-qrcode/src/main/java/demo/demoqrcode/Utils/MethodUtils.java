@@ -50,7 +50,7 @@ public class MethodUtils {
             throw new WidthAndHeightNotEnoughException("Se vuoi personalizzare le dimensioni devono essere minimo 200");
         }
 
-        if (requestData.getRequestUrl().isEmpty()) {
+        if (!StringUtils.hasLength(requestData.getRequestUrl())) {
             throw new UrlNotPresentException("Specificare un URL");
         }
 
@@ -58,10 +58,10 @@ public class MethodUtils {
         BitMatrix bitMatrix = qrCodeWriter.encode(requestData.getRequestUrl(), BarcodeFormat.QR_CODE, requestData.getQrWidth(), requestData.getQrHeight());
         
         // // Set default colors if not provided
-        if (requestData.getBackgroundColor().isEmpty()) {
+        if (!StringUtils.hasLength(requestData.getBackgroundColor())) {
             requestData.setBackgroundColor("#ffffff");
         }
-        if (requestData.getQrCodeColor().isEmpty()){
+        if (!StringUtils.hasLength(requestData.getQrCodeColor())){
             requestData.setQrCodeColor("#000000");
         }
 
@@ -73,7 +73,7 @@ public class MethodUtils {
         
         int whiteBoxSize = (int) (Math.min(requestData.getQrWidth(), requestData.getQrHeight()) * 0.135);
         
-        if (!requestData.getLogoCenterUrl().isEmpty()) {
+        if (StringUtils.hasLength(requestData.getLogoCenterUrl())) {
             image = addWhiteBox(requestData, image, whiteBoxSize); 
         }
 
@@ -117,7 +117,7 @@ public class MethodUtils {
     public static BufferedImage addCenterLogoIfProvided(RequestData requestData, BufferedImage image, int whiteBoxSize) throws IOException{
         BufferedImage modifiedImage = image;
         // Add center logo if provided
-        if (!requestData.getLogoCenterUrl().isEmpty()) {
+        if (StringUtils.hasLength(requestData.getLogoCenterUrl())) {
             BufferedImage centerLogo = loadImageFromUrl(requestData.getLogoCenterUrl());
             centerLogo = resizeImage(centerLogo, whiteBoxSize, whiteBoxSize);
             modifiedImage = addLogoToCenter(image, centerLogo, requestData.getTopBorderSize(), requestData.getBottomBorderSize(),
@@ -133,7 +133,7 @@ public class MethodUtils {
         if (requestData.getTopBorderSize() != 0 || requestData.getBottomBorderSize() != 0 ||
             requestData.getLeftBorderSize() != 0 || requestData.getRightBorderSize() != 0) {
 
-            if (requestData.getBorderColor().isEmpty()) {
+            if (!StringUtils.hasLength(requestData.getBorderColor())) {
                 // Throw exception if border color is provided without border sizes
                 throw new BorderColorNotPresent("Inserire un colore per i bordi");
             }
@@ -141,7 +141,7 @@ public class MethodUtils {
             BufferedImage imageWithBorder = addBorder(image, requestData.getTopBorderSize(), requestData.getBottomBorderSize(),requestData.getLeftBorderSize(),requestData.getRightBorderSize(), requestData.getBorderColorAsColor());
             
             modifiedImage = imageWithBorder;
-        } else if (!requestData.getBorderColor().isEmpty()) {
+        } else if (StringUtils.hasLength(requestData.getBorderColor())) {
             // Throw exception if border color is provided without border sizes
             throw new BorderNotPresent("Inserire almeno un bordo per inserire il colore");
         }
@@ -155,7 +155,7 @@ public class MethodUtils {
         
         if (requestData.getTopOrBottom()!=null) {
             // Add border logo if provided
-            if (!requestData.getLogoBorderUrl().isEmpty()) {
+            if (StringUtils.hasLength(requestData.getLogoBorderUrl())) {
                 BufferedImage borderLogo = loadImageFromUrl(requestData.getLogoBorderUrl());
                 borderLogo = resizeImage(borderLogo, whiteBoxSize, whiteBoxSize);
 
@@ -177,7 +177,7 @@ public class MethodUtils {
             }
 
             // Add text to border if provided
-            if (!requestData.getTextBorder().isEmpty()) {
+            if (StringUtils.hasLength(requestData.getTextBorder())) {
                 if (requestData.getTopOrBottom().toLowerCase().equals("top")){
                     if (requestData.getTopBorderSize()<60) {
                         throw new TopOrBottomBorderNotSpecifiedException("Il bordo su cui inserire il logo o il testo deve essere minimo 60");
@@ -201,8 +201,12 @@ public class MethodUtils {
 
 
     //METODO PER GENERARE IL QRCODE BASE SENZA PERSONALIZZAZIONI
-    public static byte[] generateQrCodeBase(String text, int width, int height) throws WriterException, IOException {
+    public static byte[] generateQrCodeBase(String text, int width, int height, RequestData requestData) throws WriterException, IOException {
         QRCodeWriter qrCodeWriter = new QRCodeWriter();
+        
+        if (!StringUtils.hasLength(requestData.getRequestUrl())) {
+            throw new UrlNotPresentException("Specificare un URL");
+        }
         BitMatrix bitMatrix = qrCodeWriter.encode(text, BarcodeFormat.QR_CODE, width,height);
 
         ByteArrayOutputStream pngOutputStream = new ByteArrayOutputStream();
@@ -284,17 +288,17 @@ public class MethodUtils {
         if ((areZero && emptyString)){
             width = 350;
             height = 350;
-            System.out.println("COndizione base");
+            System.out.println("Condizione base");
 
-            return generateQrCodeBase(requestData.getRequestUrl(), width, height);
+            return generateQrCodeBase(requestData.getRequestUrl(), width, height,requestData);
 
         }else if(emptyString && width!=0 || emptyString && height!=0){
             if (width<200 || height <200){
                 throw new WidthAndHeightNotEnoughException("Se vuoi personalizzare le dimensioni devono essere minimo 200");
             }
-            System.out.println("COndizione base con controllo");
+            System.out.println("Condizione base con controllo");
 
-            return generateQrCodeBase(requestData.getRequestUrl(), width, height);
+            return generateQrCodeBase(requestData.getRequestUrl(), width, height,requestData);
         }
 
         else{
@@ -436,4 +440,3 @@ public class MethodUtils {
     }
 
 }
-

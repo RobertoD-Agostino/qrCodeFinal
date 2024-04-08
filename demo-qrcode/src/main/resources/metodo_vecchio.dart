@@ -13,6 +13,7 @@ import java.io.IOException;
 import java.lang.reflect.Array;
 import java.lang.reflect.Field;
 import java.net.URL;
+import java.nio.Buffer;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
@@ -31,6 +32,7 @@ import com.google.zxing.common.BitMatrix;
 import com.google.zxing.qrcode.QRCodeWriter;
 
 import Exceptions.BorderNotPresent;
+import Exceptions.ColorNotValidException;
 import Exceptions.TopOrBottomBorderNotSpecifiedException;
 import Exceptions.UrlNotPresentException;
 import Exceptions.WidthAndHeightNotEnoughException;
@@ -58,20 +60,41 @@ public class MethodUtils {
         // // Set default colors if not provided
         if (requestData.getBackgroundColor().isEmpty()) {
             requestData.setBackgroundColor("#ffffff");
-        }else if (requestData.getQrCodeColor().isEmpty()){
+        }
+        if (requestData.getQrCodeColor().isEmpty()){
             requestData.setQrCodeColor("#000000");
         }
 
-
-        
         MatrixToImageConfig con = new MatrixToImageConfig(requestData.getQrCodeColorAsColor().getRGB(), requestData.getBackgroundColorAsColor().getRGB());
 
 
         // Convert bitMatrix to BufferedImage
         BufferedImage image = MatrixToImageWriter.toBufferedImage(bitMatrix, con);
         
-        // Add white box to the center
         int whiteBoxSize = (int) (Math.min(requestData.getQrWidth(), requestData.getQrHeight()) * 0.135);
+        
+        if (!requestData.getLogoCenterUrl().isEmpty()) {
+            image = addWhiteBox(requestData, image, whiteBoxSize); 
+        }
+
+        image = addBordersIfProvided(requestData, image);
+        
+        image=addCenterLogoIfProvided(requestData, image, whiteBoxSize);
+    
+        addLogoOrTextToBorderIfProvided(requestData, image, whiteBoxSize);
+
+        
+        // Convert BufferedImage to byte array
+        ByteArrayOutputStream pngOutputStream = new ByteArrayOutputStream();
+        ImageIO.write(image, "PNG", pngOutputStream);
+        return pngOutputStream.toByteArray();
+    }
+
+
+    public static BufferedImage addWhiteBox(RequestData requestData, BufferedImage image, int whiteBoxSize){
+        BufferedImage modifiedImage = image;
+
+        // Add white box to the center
         int whiteBoxX = (requestData.getQrWidth() - whiteBoxSize) / 2;
         int whiteBoxY = (requestData.getQrHeight() - whiteBoxSize) / 2;
         BufferedImage overlayImage = new BufferedImage(requestData.getQrWidth(), requestData.getQrHeight(), BufferedImage.TYPE_INT_ARGB);
@@ -81,12 +104,31 @@ public class MethodUtils {
         graphics.setColor(Color.WHITE);
         graphics.fillRect(whiteBoxX, whiteBoxY, whiteBoxSize, whiteBoxSize);
         graphics.dispose();
-    
+
         // Merge QR code image with the white box
-        Graphics2D qrGraphics = image.createGraphics();
+        Graphics2D qrGraphics = modifiedImage.createGraphics();
         qrGraphics.drawImage(overlayImage, 0, 0, null);
         qrGraphics.dispose();
-    
+
+        return modifiedImage;
+    }
+
+
+    public static BufferedImage addCenterLogoIfProvided(RequestData requestData, BufferedImage image, int whiteBoxSize) throws IOException{
+        BufferedImage modifiedImage = image;
+        // Add center logo if provided
+        if (!requestData.getLogoCenterUrl().isEmpty()) {
+            BufferedImage centerLogo = loadImageFromUrl(requestData.getLogoCenterUrl());
+            centerLogo = resizeImage(centerLogo, whiteBoxSize, whiteBoxSize);
+            modifiedImage = addLogoToCenter(image, centerLogo, requestData.getTopBorderSize(), requestData.getBottomBorderSize(),
+            requestData.getLeftBorderSize(), requestData.getRightBorderSize());
+        }
+        return modifiedImage;
+    }
+
+
+    public static BufferedImage addBordersIfProvided(RequestData requestData, BufferedImage image){
+        BufferedImage modifiedImage = image;
         // Add borders if provided
         if (requestData.getTopBorderSize() != 0 || requestData.getBottomBorderSize() != 0 ||
             requestData.getLeftBorderSize() != 0 || requestData.getRightBorderSize() != 0) {
@@ -98,21 +140,19 @@ public class MethodUtils {
 
             BufferedImage imageWithBorder = addBorder(image, requestData.getTopBorderSize(), requestData.getBottomBorderSize(),requestData.getLeftBorderSize(),requestData.getRightBorderSize(), requestData.getBorderColorAsColor());
             
-            image = imageWithBorder;
+            modifiedImage = imageWithBorder;
         } else if (!requestData.getBorderColor().isEmpty()) {
             // Throw exception if border color is provided without border sizes
             throw new BorderNotPresent("Inserire almeno un bordo per inserire il colore");
         }
-    
+        return modifiedImage;
+    }
+
+
+
+    public static BufferedImage addLogoOrTextToBorderIfProvided(RequestData requestData, BufferedImage image, int whiteBoxSize) throws IOException{
+        BufferedImage modifiedImage = image;
         
-        // Add center logo if provided
-        if (!requestData.getLogoCenterUrl().isEmpty()) {
-            BufferedImage centerLogo = loadImageFromUrl(requestData.getLogoCenterUrl());
-            centerLogo = resizeImage(centerLogo, whiteBoxSize, whiteBoxSize);
-            image = addLogoToCenter(image, centerLogo, requestData.getTopBorderSize(), requestData.getBottomBorderSize(),
-                    requestData.getLeftBorderSize(), requestData.getRightBorderSize());
-        }
-    
         if (requestData.getTopOrBottom()!=null) {
             // Add border logo if provided
             if (!requestData.getLogoBorderUrl().isEmpty()) {
@@ -155,19 +195,8 @@ public class MethodUtils {
                 }
             } 
         }
-        
-
-        
-
-        // Convert BufferedImage to byte array
-        ByteArrayOutputStream pngOutputStream = new ByteArrayOutputStream();
-        ImageIO.write(image, "PNG", pngOutputStream);
-        return pngOutputStream.toByteArray();
+        return modifiedImage;
     }
-    
-    // public static void requestText(RequestData requestData){
-
-    // }
 
 
 
@@ -252,7 +281,6 @@ public class MethodUtils {
         int width = requestData.getQrWidth();
         int height = requestData.getQrHeight();
 
-
         if ((areZero && emptyString)){
             width = 350;
             height = 350;
@@ -270,13 +298,12 @@ public class MethodUtils {
         }
 
         else{
-            
             return generateQrCodeImage(requestData);
         }
     }
 
     public static ResponseEntity handleRuntimeException(RuntimeException e) {
-        if (e instanceof WidthAndHeightNotEnoughException || e instanceof BorderNotPresent || e instanceof BorderColorNotPresent || e instanceof UrlNotPresentException || e instanceof TopOrBottomBorderNotSpecifiedException) {
+        if (e instanceof WidthAndHeightNotEnoughException || e instanceof BorderNotPresent || e instanceof BorderColorNotPresent || e instanceof UrlNotPresentException || e instanceof TopOrBottomBorderNotSpecifiedException || e instanceof ColorNotValidException) {
             String errorMessage = e.getClass().getSimpleName() + ": " + e.getMessage();
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorMessage);
         } else {
@@ -290,7 +317,6 @@ public class MethodUtils {
         return ImageIO.read(url);
     }
 
-    
 
     //METODO PER RIDIMENSIONARE IL LOGO ALLE DIMENSIONI DEL QUADRATO BIANCO
     public static BufferedImage resizeImage(BufferedImage originalImage, int targetWidth, int targetHeight) {
