@@ -45,8 +45,11 @@ public class MethodUtils {
     //METODO PER GENERARE IL QRCODE CON TUTTE LE PERSONALIZZAZIONI
     public static byte[] generateQrCodeImage(RequestData requestData) throws WriterException, IOException, RuntimeException{
         QRCodeWriter qrCodeWriter = new QRCodeWriter();
-        
-        if (requestData.getQrWidth()<200 || requestData.getQrHeight() <200){
+
+        if (requestData.getQrWidth() == 0 && requestData.getQrHeight() == 0) {
+            requestData.setQrWidth(200);
+            requestData.setQrHeight(200);
+        }else if (requestData.getQrWidth()<200 || requestData.getQrHeight() <200){
             throw new WidthAndHeightNotEnoughException("Se vuoi personalizzare le dimensioni devono essere minimo 200");
         }
 
@@ -150,7 +153,7 @@ public class MethodUtils {
 
 
 
-    public static BufferedImage addLogoOrTextToBorderIfProvided(RequestData requestData, BufferedImage image, int whiteBoxSize) throws IOException{
+    public static BufferedImage addLogoOrTextToBorderIfProvided(RequestData requestData, BufferedImage image, int whiteBoxSize) throws IOException, RuntimeException{
         BufferedImage modifiedImage = image;
         
         if (requestData.getTopOrBottom()!=null) {
