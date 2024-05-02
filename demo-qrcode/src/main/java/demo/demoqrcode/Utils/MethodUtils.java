@@ -144,9 +144,9 @@ public class MethodUtils {
             BufferedImage imageWithBorder = addBorder(image, requestData.getTopBorderSize(), requestData.getBottomBorderSize(),requestData.getLeftBorderSize(),requestData.getRightBorderSize(), requestData.getBorderColorAsColor());
             
             modifiedImage = imageWithBorder;
-        } else if (StringUtils.hasLength(requestData.getBorderColor())) {
+        } else if (StringUtils.hasLength(requestData.getTextBorder()) || StringUtils.hasLength(requestData.getBorderColor())) {
             // Throw exception if border color is provided without border sizes
-            throw new BorderNotPresent("Inserire almeno un bordo per inserire il colore");
+            throw new BorderNotPresent("Inserire almeno un bordo per inserire il colore o il testo");
         }
         return modifiedImage;
     }
